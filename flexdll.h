@@ -22,6 +22,7 @@ extern "C"
 #endif
 
 void *flexdll_dlopen(const char *, int);
+void *flexdll_wdlopen(const WCHAR *, int);
 void *flexdll_dlsym(void *, const char *);
 void flexdll_dlclose(void *);
 char *flexdll_dlerror(void);

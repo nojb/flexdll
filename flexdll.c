@@ -71,16 +71,16 @@ static char * ll_dlerror(void)
 
 #else
 
-static void *ll_dlopen(const char *libname, int for_execution) {
+static void *ll_dlopen(const WCHAR *libname, int for_execution) {
   HMODULE m;
-  m = LoadLibraryEx(libname, NULL,
-		    for_execution ? 0 : DONT_RESOLVE_DLL_REFERENCES);
+  m = LoadLibraryExW(libname, NULL,
+                     for_execution ? 0 : DONT_RESOLVE_DLL_REFERENCES);
   /* See https://blogs.msdn.microsoft.com/oldnewthing/20050214-00/?p=36463
      Should use LOAD_LIBRARY_AS_DATAFILE instead of DONT_RESOLVE_DLL_REFERENCES? */
 
   /* Under Win 95/98/ME, LoadLibraryEx can fail in cases where LoadLibrary
      would succeed.  Just try again with LoadLibrary for good measure. */
-  if (m == NULL) m = LoadLibrary(libname);
+  if (m == NULL) m = LoadLibraryW(libname);
   return (void *) m;
 }
 
@@ -349,7 +349,7 @@ int flexdll_relocate(void *tbl) {
   return 1;
 }
 
-void *flexdll_dlopen(const char *file, int mode) {
+void *flexdll_wdlopen(const WCHAR *file, int mode) {
   void *handle;
   dlunit *unit;
   char flexdll_relocate_env[256];
@@ -401,6 +401,22 @@ void *flexdll_dlopen(const char *file, int mode) {
   }
 
   return unit;
+}
+
+void *flexdll_dlopen(const char *file, int mode)
+{
+  WCHAR * p;
+  int nbr;
+  void * handle;
+
+  nbr = MultiByteToWideChar(CP_THREAD_ACP, 0, file, -1, NULL, 0);
+  if (nbr == 0) { if (!error) error = 1; return NULL; }
+  p = malloc(nbr*sizeof(WCHAR));
+  MultiByteToWideChar(CP_THREAD_ACP, 0, file, -1, p, nbr);
+  handle = flexdll_wdlopen(p, mode);
+  free(p);
+
+  return handle;
 }
 
 void flexdll_dlclose(void *u) {
