@@ -71,7 +71,7 @@ static char * ll_dlerror(void)
 
 #else
 
-static void *ll_dlopen(const WCHAR *libname, int for_execution) {
+static void *ll_dlopen(const wchar_t *libname, int for_execution) {
   HMODULE m;
   m = LoadLibraryExW(libname, NULL,
                      for_execution ? 0 : DONT_RESOLVE_DLL_REFERENCES);
@@ -349,7 +349,11 @@ int flexdll_relocate(void *tbl) {
   return 1;
 }
 
-void *flexdll_wdlopen(const WCHAR *file, int mode) {
+#ifdef CYGWIN
+void *flexdll_wdlopen(const char *file, int mode) {
+#else
+void *flexdll_wdlopen(const wchar_t *file, int mode) {
+#endif
   void *handle;
   dlunit *unit;
   char flexdll_relocate_env[256];
@@ -403,21 +407,32 @@ void *flexdll_wdlopen(const WCHAR *file, int mode) {
   return unit;
 }
 
+#ifdef CYGWIN
+
 void *flexdll_dlopen(const char *file, int mode)
 {
-  WCHAR * p;
+  return flexdll_wdlopen(file, mode);
+}
+
+#else
+
+ void *flexdll_dlopen(const char *file, int mode)
+{
+  wchar_t * p;
   int nbr;
   void * handle;
 
   nbr = MultiByteToWideChar(CP_THREAD_ACP, 0, file, -1, NULL, 0);
   if (nbr == 0) { if (!error) error = 1; return NULL; }
-  p = malloc(nbr*sizeof(WCHAR));
+  p = malloc(nbr*sizeof(wchar_t));
   MultiByteToWideChar(CP_THREAD_ACP, 0, file, -1, p, nbr);
   handle = flexdll_wdlopen(p, mode);
   free(p);
 
   return handle;
 }
+
+#endif
 
 void flexdll_dlclose(void *u) {
   dlunit *unit = u;
